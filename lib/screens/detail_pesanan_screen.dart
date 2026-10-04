@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/pesanan_service.dart';
+import '../utils/pesanan_util.dart';
 
 const daftarStatus = ["diproses", "selesai", "dibatalkan"];
 
@@ -14,9 +15,11 @@ Color warnaStatus(String status) {
   }
 }
 
+// Tanggal pesanan, ditampilkan dalam zona waktu perangkat.
 String formatTanggal(dynamic tanggal) {
-  if (tanggal == null) return "-";
-  return tanggal.toString().replaceFirst("T", " ").split(".").first;
+  final d = parseWaktu(tanggal);
+  if (d == null) return tanggal == null ? "-" : tanggal.toString();
+  return "${d.year}-${dua(d.month)}-${dua(d.day)} ${dua(d.hour)}:${dua(d.minute)}";
 }
 
 // Dipakai bersama oleh member (lihat saja) dan admin (bisa ubah status)
@@ -37,11 +40,13 @@ class _DetailPesananScreenState extends State<DetailPesananScreen> {
   final _service = PesananService();
   late Future<List<dynamic>> _detailFuture;
   late String _status;
+  late String _statusBayar;
 
   @override
   void initState() {
     super.initState();
     _status = widget.pesanan["status"] ?? "diproses";
+    _statusBayar = widget.pesanan["status_pembayaran"] ?? bayarBelum;
     _detailFuture = _service.getDetailPesanan(widget.pesanan["id"].toString());
   }
 
@@ -57,6 +62,20 @@ class _DetailPesananScreenState extends State<DetailPesananScreen> {
     );
   }
 
+  Future<void> _ubahBayar(String? baru) async {
+    if (baru == null || baru == _statusBayar) return;
+    final ok = await _service.updateStatusPembayaran(
+        widget.pesanan["id"].toString(), baru);
+    if (!mounted) return;
+    if (ok) {
+      setState(() => _statusBayar = baru);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(ok ? "Status pembayaran diperbarui" : "Gagal memperbarui pembayaran")),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = widget.pesanan;
@@ -69,6 +88,24 @@ class _DetailPesananScreenState extends State<DetailPesananScreen> {
           children: [
             if (p["users"] != null) Text("Pemesan: ${p["users"]["nama"]}"),
             Text("Tanggal: ${formatTanggal(p["tanggal"])}"),
+            if (p["jadwal_ambil"] != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        "Jadwal ambil: ${formatJadwal(p["jadwal_ambil"])}",
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 4),
+            Text("Pembayaran: ${labelMetode(p["metode_pembayaran"])}"),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -85,6 +122,25 @@ class _DetailPesananScreenState extends State<DetailPesananScreen> {
                   Chip(
                     label: Text(_status),
                     backgroundColor: warnaStatus(_status).withOpacity(0.15),
+                  ),
+              ],
+            ),
+            Row(
+              children: [
+                const Text("Pembayaran: "),
+                if (widget.isAdmin)
+                  DropdownButton<String>(
+                    value: _statusBayar,
+                    items: [bayarBelum, bayarLunas]
+                        .map((s) => DropdownMenuItem(
+                            value: s, child: Text(labelBayar(s))))
+                        .toList(),
+                    onChanged: _ubahBayar,
+                  )
+                else
+                  Chip(
+                    label: Text(labelBayar(_statusBayar)),
+                    backgroundColor: warnaBayar(_statusBayar).withOpacity(0.15),
                   ),
               ],
             ),
