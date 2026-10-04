@@ -8,10 +8,15 @@ class PesananService {
 
   // CHECKOUT (member): buat 1 pesanan + banyak detail_pesanan
   // items: [{"produk_id": 1, "qty": 2, "subtotal": 50000}, ...]
-  Future<bool> buatPesanan({
+  // metodePembayaran: "cash" (bayar di kasir) / "qris"
+  // jadwalAmbil: null = pesan sekarang, terisi = pesanan terjadwal
+  // Mengembalikan id pesanan, atau null jika gagal.
+  Future<int?> buatPesanan({
     required String userId,
     required int totalHarga,
     required List<Map<String, dynamic>> items,
+    String metodePembayaran = "cash",
+    DateTime? jadwalAmbil,
   }) async {
     // 1. Simpan pesanan utama
     final res = await http.post(
@@ -21,9 +26,13 @@ class PesananService {
         "user_id": int.parse(userId),
         "status": "diproses",
         "total_harga": totalHarga,
+        "metode_pembayaran": metodePembayaran,
+        "status_pembayaran": "belum_bayar",
+        // Disimpan dalam UTC; ditampilkan lagi sebagai waktu lokal.
+        "jadwal_ambil": jadwalAmbil?.toUtc().toIso8601String(),
       }),
     );
-    if (res.statusCode != 201) return false;
+    if (res.statusCode != 201) return null;
 
     // Supabase mengembalikan array berisi baris yang baru dibuat
     final pesananId = (jsonDecode(res.body) as List).first["id"];
@@ -43,7 +52,15 @@ class PesananService {
       headers: headers,
       body: jsonEncode(detail),
     );
-    return resDetail.statusCode == 201;
+    if (resDetail.statusCode != 201) {
+      // Batalkan pesanan utama agar tidak ada pesanan kosong tanpa item.
+      await http.delete(
+        Uri.parse("$baseUrl/pesanan?id=eq.$pesananId"),
+        headers: headers,
+      );
+      return null;
+    }
+    return pesananId as int;
   }
 
   // Riwayat pesanan milik satu member
@@ -85,5 +102,26 @@ class PesananService {
       body: jsonEncode({"status": status}),
     );
     return res.statusCode == 200;
+  }
+
+  // Ubah status pembayaran (admin): "belum_bayar" / "lunas"
+  Future<bool> updateStatusPembayaran(String pesananId, String status) async {
+    final res = await http.patch(
+      Uri.parse("$baseUrl/pesanan?id=eq.$pesananId"),
+      headers: headers,
+      body: jsonEncode({"status_pembayaran": status}),
+    );
+    return res.statusCode == 200;
+  }
+
+  // Semua pesanan yang punya jadwal ambil (admin), urut dari yang terdekat
+  Future<List<dynamic>> getPesananTerjadwal() async {
+    final res = await http.get(
+      Uri.parse(
+          "$baseUrl/pesanan?select=*,users(nama)&jadwal_ambil=not.is.null&order=jadwal_ambil.asc"),
+      headers: headers,
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception("Gagal mengambil pesanan terjadwal");
   }
 }

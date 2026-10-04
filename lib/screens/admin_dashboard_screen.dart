@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'admin/list_jadwal_screen.dart';
 import 'admin/list_kategori_screen.dart';
 import 'admin/list_pesanan_screen.dart';
 import 'admin/list_produk_screen.dart';
@@ -52,6 +53,7 @@ class AdminDashboardScreen extends StatelessWidget {
           _menuCard(context, Icons.local_cafe, "Kelola produk", const ListProdukScreen()),
           _menuCard(context, Icons.category, "Kelola kategori", const ListKategoriScreen()),
           _menuCard(context, Icons.receipt_long, "Pesanan masuk", const ListPesananScreen()),
+          _menuCard(context, Icons.event_note, "Pesanan terjadwal", const ListJadwalScreen()),
         ],
       ),
     );

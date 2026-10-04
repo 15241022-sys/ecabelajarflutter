@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/pesanan_service.dart';
+import '../utils/pesanan_util.dart';
 import 'detail_pesanan_screen.dart';
 
 class RiwayatPesananScreen extends StatefulWidget {
@@ -55,7 +56,20 @@ class _RiwayatPesananScreenState extends State<RiwayatPesananScreen> {
                 final status = p["status"] ?? "diproses";
                 return ListTile(
                   title: Text("Pesanan #${p["id"]}  •  Rp${p["total_harga"]}"),
-                  subtitle: Text(formatTanggal(p["tanggal"])),
+                  isThreeLine: p["jadwal_ambil"] != null,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(formatTanggal(p["tanggal"])),
+                      if (p["jadwal_ambil"] != null)
+                        Text("Jadwal ambil: ${formatJadwal(p["jadwal_ambil"])}",
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        "${labelMetode(p["metode_pembayaran"])}  •  ${labelBayar(p["status_pembayaran"])}",
+                        style: TextStyle(color: warnaBayar(p["status_pembayaran"])),
+                      ),
+                    ],
+                  ),
                   trailing: Text(status,
                       style: TextStyle(color: warnaStatus(status))),
                   onTap: () => Navigator.push(
