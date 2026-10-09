@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config.dart';
+import 'cabang_service.dart';
+import 'notifikasi_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
@@ -59,7 +61,10 @@ class AuthService {
 
   // Logout: hapus semua data session
   Future<void> logout() async {
+    // Hentikan push ke perangkat ini sebelum data session dihapus.
+    await NotifikasiService.instance.batalkan();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    CabangState.instance.reset();
   }
 }

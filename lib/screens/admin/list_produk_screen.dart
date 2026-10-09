@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/cabang_service.dart';
 import '../../services/produk_service.dart';
 import 'form_produk_screen.dart';
 
@@ -16,10 +17,11 @@ class _ListProdukScreenState extends State<ListProdukScreen> {
   @override
   void initState() {
     super.initState();
-    _future = _service.getProduk();
+    _future = _service.getProduk(cabangId: CabangState.instance.id);
   }
 
-  void _muatUlang() => setState(() => _future = _service.getProduk());
+  void _muatUlang() => setState(
+      () => _future = _service.getProduk(cabangId: CabangState.instance.id));
 
   Future<void> _bukaForm({Map<String, dynamic>? produk}) async {
     final berubah = await Navigator.push<bool>(
@@ -54,7 +56,7 @@ class _ListProdukScreenState extends State<ListProdukScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Produk")),
+      appBar: AppBar(title: Text("Produk • ${CabangState.instance.nama ?? "-"}")),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _bukaForm(),
         child: const Icon(Icons.add),

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import '../services/pesanan_service.dart';
 import '../utils/pesanan_util.dart';
 
-const daftarStatus = ["diproses", "selesai", "dibatalkan"];
+const daftarStatus = ["diproses", "siap_diambil", "selesai", "dibatalkan"];
 
 Color warnaStatus(String status) {
   switch (status) {
+    case "siap_diambil":
+      return Colors.blue;
     case "selesai":
       return Colors.green;
     case "dibatalkan":
@@ -88,6 +90,7 @@ class _DetailPesananScreenState extends State<DetailPesananScreen> {
           children: [
             if (p["users"] != null) Text("Pemesan: ${p["users"]["nama"]}"),
             Text("Tanggal: ${formatTanggal(p["tanggal"])}"),
+            if (p["cabang"] != null) Text("Outlet: ${p["cabang"]["nama"]}"),
             if (p["jadwal_ambil"] != null)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -114,13 +117,13 @@ class _DetailPesananScreenState extends State<DetailPesananScreen> {
                   DropdownButton<String>(
                     value: _status,
                     items: daftarStatus
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .map((s) => DropdownMenuItem(value: s, child: Text(labelStatus(s))))
                         .toList(),
                     onChanged: _ubahStatus,
                   )
                 else
                   Chip(
-                    label: Text(_status),
+                    label: Text(labelStatus(_status)),
                     backgroundColor: warnaStatus(_status).withOpacity(0.15),
                   ),
               ],

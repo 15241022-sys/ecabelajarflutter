@@ -6,10 +6,12 @@ class ProdukService {
   static const String baseUrl = AppConfig.baseUrl;
   static const Map<String, String> headers = AppConfig.headers;
 
-  // GET semua produk (opsional filter per kategori)
-  Future<List<dynamic>> getProduk({String? kategoriId}) async {
-    final response =
-        await http.get(Uri.parse("$baseUrl/produk"), headers: headers);
+  // GET produk (opsional filter per kategori dan per cabang)
+  Future<List<dynamic>> getProduk({String? kategoriId, int? cabangId}) async {
+    final filterCabang = cabangId == null ? "" : "&cabang_id=eq.$cabangId";
+    final response = await http.get(
+        Uri.parse("$baseUrl/produk?order=id.asc$filterCabang"),
+        headers: headers);
 
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
@@ -36,6 +38,7 @@ class ProdukService {
 
   // POST tambah produk baru (dipakai halaman admin)
   Future<bool> tambahProduk({
+    required int cabangId,
     required String kategoriId,
     required String namaProduk,
     required int harga,
@@ -47,6 +50,7 @@ class ProdukService {
       Uri.parse("$baseUrl/produk"),
       headers: headers,
       body: jsonEncode({
+        "cabang_id": cabangId,
         "kategori_id": int.tryParse(kategoriId) ?? kategoriId,
         "nama_produk": namaProduk,
         "harga": harga,

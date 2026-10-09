@@ -4,6 +4,20 @@ const metodeCash = "cash";
 const metodeQris = "qris";
 const bayarBelum = "belum_bayar";
 const bayarLunas = "lunas";
+const statusSiap = "siap_diambil";
+
+String labelStatus(dynamic s) {
+  switch (s) {
+    case "siap_diambil":
+      return "Siap diambil";
+    case "selesai":
+      return "Selesai";
+    case "dibatalkan":
+      return "Dibatalkan";
+    default:
+      return "Diproses";
+  }
+}
 
 const _hari = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 const _bulan = [
@@ -26,6 +40,9 @@ String formatJadwal(dynamic v) {
   return "${_hari[d.weekday - 1]}, ${d.day} ${_bulan[d.month - 1]} ${d.year}"
       " • ${dua(d.hour)}:${dua(d.minute)}";
 }
+
+// Contoh: "5 Okt 2026"
+String formatTglPendek(DateTime d) => "${d.day} ${_bulan[d.month - 1]} ${d.year}";
 
 // Contoh: "Sen, 5 Okt 2026" (untuk header pengelompokan)
 String formatHariTanggal(DateTime d) =>

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config.dart';
+import '../utils/filter_pesanan.dart';
 
 class PesananService {
   static const String baseUrl = AppConfig.baseUrl;
@@ -10,9 +11,11 @@ class PesananService {
   // items: [{"produk_id": 1, "qty": 2, "subtotal": 50000}, ...]
   // metodePembayaran: "cash" (bayar di kasir) / "qris"
   // jadwalAmbil: null = pesan sekarang, terisi = pesanan terjadwal
+  // cabangId: outlet tempat pesanan diambil
   // Mengembalikan id pesanan, atau null jika gagal.
   Future<int?> buatPesanan({
     required String userId,
+    required int cabangId,
     required int totalHarga,
     required List<Map<String, dynamic>> items,
     String metodePembayaran = "cash",
@@ -24,6 +27,7 @@ class PesananService {
       headers: headers,
       body: jsonEncode({
         "user_id": int.parse(userId),
+        "cabang_id": cabangId,
         "status": "diproses",
         "total_harga": totalHarga,
         "metode_pembayaran": metodePembayaran,
@@ -63,20 +67,43 @@ class PesananService {
     return pesananId as int;
   }
 
-  // Riwayat pesanan milik satu member
-  Future<List<dynamic>> getPesananUser(String userId) async {
+  // Query tambahan untuk filter waktu pemesanan dan cabang.
+  String _filterQuery(FilterPesanan? f) {
+    if (f == null) return "";
+    final sb = StringBuffer();
+    if (f.cabangId != null) sb.write("&cabang_id=eq.${f.cabangId}");
+    final mulai = f.mulai;
+    if (mulai != null) {
+      sb.write(
+          "&tanggal=gte.${Uri.encodeQueryComponent(mulai.toUtc().toIso8601String())}");
+    }
+    final akhir = f.akhir;
+    if (akhir != null) {
+      sb.write(
+          "&tanggal=lt.${Uri.encodeQueryComponent(akhir.toUtc().toIso8601String())}");
+    }
+    return sb.toString();
+  }
+
+  // Riwayat pesanan milik satu member (opsional difilter waktu & cabang),
+  // sekaligus ambil nama outlet lewat relasi cabang
+  Future<List<dynamic>> getPesananUser(String userId,
+      {FilterPesanan? filter}) async {
     final res = await http.get(
-      Uri.parse("$baseUrl/pesanan?user_id=eq.$userId&order=id.desc"),
+      Uri.parse(
+          "$baseUrl/pesanan?select=*,cabang(nama)&user_id=eq.$userId${_filterQuery(filter)}&order=id.desc"),
       headers: headers,
     );
     if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception("Gagal mengambil riwayat pesanan");
   }
 
-  // Semua pesanan (admin), sekaligus ambil nama pemesan lewat relasi users
-  Future<List<dynamic>> getSemuaPesanan() async {
+  // Pesanan (admin), opsional difilter waktu & cabang, sekaligus ambil
+  // nama pemesan (users) dan nama outlet (cabang)
+  Future<List<dynamic>> getSemuaPesanan({FilterPesanan? filter}) async {
     final res = await http.get(
-      Uri.parse("$baseUrl/pesanan?select=*,users(nama)&order=id.desc"),
+      Uri.parse(
+          "$baseUrl/pesanan?select=*,users(nama),cabang(nama)${_filterQuery(filter)}&order=id.desc"),
       headers: headers,
     );
     if (res.statusCode == 200) return jsonDecode(res.body);
@@ -114,11 +141,13 @@ class PesananService {
     return res.statusCode == 200;
   }
 
-  // Semua pesanan yang punya jadwal ambil (admin), urut dari yang terdekat
-  Future<List<dynamic>> getPesananTerjadwal() async {
+  // Pesanan yang punya jadwal ambil (admin), urut dari yang terdekat.
+  // cabangId: hanya cabang yang sedang dikelola admin.
+  Future<List<dynamic>> getPesananTerjadwal({int? cabangId}) async {
+    final filterCabang = cabangId == null ? "" : "&cabang_id=eq.$cabangId";
     final res = await http.get(
       Uri.parse(
-          "$baseUrl/pesanan?select=*,users(nama)&jadwal_ambil=not.is.null&order=jadwal_ambil.asc"),
+          "$baseUrl/pesanan?select=*,users(nama),cabang(nama)&jadwal_ambil=not.is.null$filterCabang&order=jadwal_ambil.asc"),
       headers: headers,
     );
     if (res.statusCode == 200) return jsonDecode(res.body);

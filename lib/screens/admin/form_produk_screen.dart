@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../services/cabang_service.dart';
 import '../../services/kategori_service.dart';
 import '../../services/produk_service.dart';
 import '../../services/storage_service.dart';
@@ -50,7 +51,8 @@ class _FormProdukScreenState extends State<FormProdukScreen> {
   }
 
   Future<void> _muatKategori() async {
-    final data = await KategoriService().getKategori();
+    final data =
+        await KategoriService().getKategori(cabangId: CabangState.instance.id);
     if (!mounted) return;
     setState(() => _kategori = data);
   }
@@ -124,6 +126,14 @@ class _FormProdukScreenState extends State<FormProdukScreen> {
 
   Future<void> _simpan() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final cabangId = CabangState.instance.id;
+    if (cabangId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Pilih cabang terlebih dahulu di dashboard")),
+      );
+      return;
+    }
     setState(() => _loading = true);
 
     final harga = int.parse(_harga.text);
@@ -158,6 +168,7 @@ class _FormProdukScreenState extends State<FormProdukScreen> {
             stok: stok,
           )
         : await _produkService.tambahProduk(
+            cabangId: cabangId,
             kategoriId: _kategoriId!,
             namaProduk: _nama.text.trim(),
             harga: harga,

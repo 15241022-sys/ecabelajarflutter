@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../services/cabang_service.dart';
+import '../../services/notifikasi_service.dart';
 import '../../services/pesanan_service.dart';
 import '../../utils/pesanan_util.dart';
 import '../../widgets/produk_card.dart' show formatRupiah;
@@ -30,10 +32,14 @@ class _ListJadwalScreenState extends State<ListJadwalScreen> {
     super.initState();
     _muat();
     _timer = Timer.periodic(const Duration(seconds: 30), (_) => _muat(senyap: true));
+    NotifikasiService.instance.tandaMasuk.addListener(_dariPush);
   }
+
+  void _dariPush() => _muat(senyap: true);
 
   @override
   void dispose() {
+    NotifikasiService.instance.tandaMasuk.removeListener(_dariPush);
     _timer?.cancel();
     super.dispose();
   }
@@ -41,7 +47,7 @@ class _ListJadwalScreenState extends State<ListJadwalScreen> {
   Future<void> _muat({bool senyap = false}) async {
     if (!senyap) setState(() => _loading = true);
     try {
-      final data = await _service.getPesananTerjadwal();
+      final data = await _service.getPesananTerjadwal(cabangId: CabangState.instance.id);
       if (!mounted) return;
       setState(() {
         _data = data;
@@ -58,8 +64,11 @@ class _ListJadwalScreenState extends State<ListJadwalScreen> {
     }
   }
 
-  bool _masihAktif(Map<String, dynamic> p) =>
-      (p["status"] ?? "diproses") == "diproses";
+  // Masih aktif = belum selesai/dibatalkan (termasuk "siap diambil").
+  bool _masihAktif(Map<String, dynamic> p) {
+    final s = (p["status"] ?? "diproses").toString();
+    return s == "diproses" || s == statusSiap;
+  }
 
   String _durasi(int menit) {
     if (menit < 60) return "$menit mnt";
@@ -147,7 +156,7 @@ class _ListJadwalScreenState extends State<ListJadwalScreen> {
                   ],
                 ),
               ),
-              Text(status, style: TextStyle(color: warnaStatus(status))),
+              Text(labelStatus(status), style: TextStyle(color: warnaStatus(status))),
             ],
           ),
         ),
@@ -187,7 +196,7 @@ class _ListJadwalScreenState extends State<ListJadwalScreen> {
     }).length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Pesanan terjadwal")),
+      appBar: AppBar(title: Text("Pesanan terjadwal • ${CabangState.instance.nama ?? "-"}")),
       body: Column(
         children: [
           Padding(

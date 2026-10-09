@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/cabang_service.dart';
 import '../../services/kategori_service.dart';
 
 class ListKategoriScreen extends StatefulWidget {
@@ -15,10 +16,11 @@ class _ListKategoriScreenState extends State<ListKategoriScreen> {
   @override
   void initState() {
     super.initState();
-    _future = _service.getKategori();
+    _future = _service.getKategori(cabangId: CabangState.instance.id);
   }
 
-  void _muatUlang() => setState(() => _future = _service.getKategori());
+  void _muatUlang() => setState(
+      () => _future = _service.getKategori(cabangId: CabangState.instance.id));
 
   void _pesan(String teks) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(teks)));
@@ -47,8 +49,14 @@ class _ListKategoriScreenState extends State<ListKategoriScreen> {
     final nama = controller.text.trim();
     if (simpan != true || nama.isEmpty) return;
 
+    final cabangId = CabangState.instance.id;
+    if (cabangId == null) {
+      _pesan("Pilih cabang terlebih dahulu di dashboard");
+      return;
+    }
+
     final ok = kategori == null
-        ? await _service.tambahKategori(nama)
+        ? await _service.tambahKategori(nama, cabangId: cabangId)
         : await _service.ubahKategori(kategori["id"].toString(), nama);
     if (!mounted) return;
     _pesan(ok ? "Berhasil disimpan" : "Gagal menyimpan");
@@ -78,7 +86,7 @@ class _ListKategoriScreenState extends State<ListKategoriScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Kategori")),
+      appBar: AppBar(title: Text("Kategori • ${CabangState.instance.nama ?? "-"}")),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _formDialog(),
         child: const Icon(Icons.add),

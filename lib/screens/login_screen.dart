@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/notifikasi_service.dart';
 import 'admin_dashboard_screen.dart';
 import 'member_home_screen.dart';
 import 'register_screen.dart';
@@ -37,6 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!mounted) return;
+
+    // Daftarkan perangkat untuk push notification (meminta izin jika perlu).
+    unawaited(NotifikasiService.instance.daftarkan(minta: true));
 
     // Routing berdasarkan role
     if (user["role"] == "admin") {

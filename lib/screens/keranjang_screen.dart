@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config.dart';
 import '../services/auth_service.dart';
+import '../services/cabang_service.dart';
 import '../services/cart_service.dart';
 import '../services/pesanan_service.dart';
 import '../utils/pesanan_util.dart';
@@ -54,6 +55,14 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
   }
 
   Future<void> _checkout() async {
+    final cabangId = CabangState.instance.id;
+    if (cabangId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Pilih outlet pengambilan dulu di halaman menu")),
+      );
+      return;
+    }
+
     if (_jadwalkan) {
       if (_jadwal == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,6 +101,7 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
 
     final pesananId = await PesananService().buatPesanan(
       userId: userId,
+      cabangId: cabangId,
       totalHarga: total,
       items: items,
       metodePembayaran: _metode,
@@ -139,6 +149,14 @@ class _KeranjangScreenState extends State<KeranjangScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Divider(),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.store),
+              title: Text("Ambil di outlet ${CabangState.instance.nama ?? "-"}"),
+              subtitle: const Text("Untuk ganti outlet, kembali ke halaman menu"),
+            ),
+          ),
+          const SizedBox(height: 12),
           const Text("Metode pembayaran",
               style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),

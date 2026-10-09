@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'services/auth_service.dart';
+import 'services/cabang_service.dart';
+import 'services/notifikasi_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/member_home_screen.dart';
@@ -16,6 +19,7 @@ class CoffeeShopApp extends StatelessWidget {
     return MaterialApp(
       title: 'Coffee Shop App',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: messengerKey,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6F4E37)),
@@ -66,6 +70,10 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkSession() async {
     final role = await _authService.getRole();
+    await CabangState.instance.muat(); // cabang/outlet terakhir yang dipilih
+
+    // Sudah login: segarkan token push diam-diam (tanpa dialog izin).
+    if (role != null) unawaited(NotifikasiService.instance.daftarkan());
 
     if (!mounted) return;
 
